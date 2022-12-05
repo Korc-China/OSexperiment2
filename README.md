@@ -17,24 +17,43 @@
 3、还有一点要注意的是，程序被中断并执行完中断函数后，也就是在中断函数中返回，那么程序会重新返回到中断前的位置继续执行之前的程序。信号处理函数只能返回void，不能返回指定的参数  
 <linux 定时器和sleep,linux中sleep函数的使用和总结>--https://blog.csdn.net/weixin_39865625/article/details/116943755?ops_request_misc=&request_id=&biz_id=102&utm_term=linux%20ctrlc%E5%AF%B9sleep&utm_medium=distribute.pc_search_result.none-task-blog-2~all~sobaiduweb~default-3-116943755.142^v67^js_top,201^v3^add_ask,213^v2^t3_esquery_v2&spm=1018.2226.3001.4187
 
-## Part1.2
+## Part1.2&3
 ### 如何修改使得只有接收到对应中断信号再发生跳转：
 1、改变为wait_flag[3]，并在各个进程内加入了循环来判断是否接收到对应中断信号，失败  
 2、改为三种handler函数，函数内有不同变量，对这三种变量进行判断  
 3、在创建完子进程后记录pid，通过if语句在handler函数内判断是哪个进程并改变对应变量（子进程的pid如何区分？）  
 ***运行出错***<br>
-![image](https://user-images.githubusercontent.com/98074671/205431671-c2c5c591-4572-4cf0-8d6a-7db87cf50b25.png)
+![image](https://user-images.githubusercontent.com/98074671/205431671-c2c5c591-4572-4cf0-8d6a-7db87cf50b25.png)  
 ***解决方法：***  
 上述错误是由于handler函数不能带有参数，若在函数定义时定义了参数，则该参数的值为所接收到的信号值，因此不能使用该种方法  
 ***运行情况***<br>
 图1：未加入lock  
-![image](https://user-images.githubusercontent.com/98074671/205540025-3e4d11c9-e39f-4fab-b001-e9d0468968c1.png)  
-图2：加入lock，但没在父进程加入signal（3，stop）  
-
+![image](https://user-images.githubusercontent.com/98074671/205540025-3e4d11c9-e39f-4fab-b001-e9d0468968c1.png)   
 ***解决方法：***  
 可以发现：会出现2比1先结束并先printf，这是由于进程的不可预知性  
 那么我在代码内部加入了lockf（）函数，实现了运行stop、handler函数时对后续代码lock，而后运行到输出结束后再取消lock，即可保证输出循序的有序  
+***运行情况***<br>
+图2：加入lock，但没在父进程加入signal（3，stop）  
+![image](https://user-images.githubusercontent.com/98074671/205643868-b66e94a7-7875-4812-98dc-53cc887b043a.png)   
+***解决方法：***  
+可以发现：等5s时，没有再出现顺序错误，但是使用delete时，依旧会出现顺序不定的情况，这是由于***两个子进程复制了signal（2，stop）函数，按下ctrl+c时，所有进程都会调用stop函数，而调用stop的顺序不是有我的代码决定的，此时是由cpu调度决定的，所以出现了顺序不定情况。***  
+那么我在父进程中加入了signal（3，stop），这样可以区分于前个监听信号。  
+***运行情况***<br>
+不可这么用，单独父进程中含有该函数时，quit时会使得两个子进程直接死亡，而父进程继续按原方式执行，因此须在外部设置  
+我的想法是利用两个signal，外面的signal来防止子进程死亡（即SIG_IGN），里面的使父进程进入下一步，但是很不幸，虽然解决了子进程死亡的问题，但无法解决顺序问题  
+![image](https://user-images.githubusercontent.com/98074671/205650881-ec2e6881-1092-422a-9002-1fa1e1b4f44c.png)  
+虽然无法解决问题，但至少有90%情况下1是先于2死亡的(是否需要在每个unlock后加入一个wait_flag=1？)  
+***对中断更好的理解***<br>
+中断是一种异步的事件处理机制，可以提高系统的并发处理能力  
+<硬中断和软中断>-- <https://blog.csdn.net/weixin_43215305/article/details/120027555?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522167003506516782395363974%2522%252C%2522scm%2522%253A%252220140713.130102334..%2522%257D&request_id=167003506516782395363974&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~top_click~default-2-120027555-null-null.142^v67^js_top,201^v3^add_ask,213^v2^t3_esquery_v2&utm_term=%E8%BD%AF%E4%B8%AD%E6%96%AD&spm=1018.2226.3001.4187>   
+<通俗理解软中断>-- <https://blog.csdn.net/weixin_38374686/article/details/119546173?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522167003506516782395363974%2522%252C%2522scm%2522%253A%252220140713.130102334..%2522%257D&request_id=167003506516782395363974&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~top_positive~default-1-119546173-null-null.142^v67^js_top,201^v3^add_ask,213^v2^t3_esquery_v2&utm_term=%E8%BD%AF%E4%B8%AD%E6%96%AD&spm=1018.2226.3001.4187>   
 
+
+
+
+
+
+////////// 
 ***运行出错***<br>
 ![image](https://user-images.githubusercontent.com/98074671/199521326-3c2d924e-5b96-4599-a1a9-2ef47455647c.png)  
 ***解决方法：***  
