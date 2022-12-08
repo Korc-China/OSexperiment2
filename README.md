@@ -69,14 +69,27 @@
 <linux管道pipe详解>--<https://blog.csdn.net/oguro/article/details/53841949?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522167029299016800184152433%2522%252C%2522scm%2522%253A%252220140713.130102334..%2522%257D&request_id=167029299016800184152433&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~top_positive~default-1-53841949-null-null.142^v67^js_top,201^v4^add_ask,213^v2^t3_esquery_v2&utm_term=%E7%AE%A1%E9%81%93&spm=1018.2226.3001.4187>   
 
 ## Part3
-
-
-
-
-
-
-
-
+***连续分配***：为用户进程分配的必须是一个连续的内存空间。
+***非连续分配***：为用户进程分配的可以是一些分散的内存空间。
+***分页存储管理的思想***：把内存分为一个个相等的小分区，再按照分区大小把进程拆分成一个个小部分。
+***分页存储管理分为***：实分页存储管理和虚分页存储管理
+***运行出错***<br>
+出现了运行错误的情况。  
+***解决方法：***  
+通过检查代码发现，我给queue->rear的初值设置为0，而rear是指向最后一个（实际存在的）的项，即队尾，但是初始化时该处并没有实际上赋值，导致每新增一项，rear总是指向空，这就导致了isFull函数在还剩一个空位时认为队列已满，产生错误。
+### FIFO
+在分配内存页面数（AP）小于进程页面数（PP）时，最先运行的AP个页面放入内存；当内存分配页面被占满时，如果又需要处理新的页面，则将原来放的内存中的AP个页中最先进入的调出（FIFO），再将新页面放入，总是淘汰最先进入内存的页面；所使用的内存页面构成一个队列，效率不高，因为它与进程实际的运行规律不相适应，如常用的全局变量、递归函数或循环体的所在页面都可能被它选为淘汰对象    
+***bleady现象原因：***    
+FIFO算法的置换特征与进程访问内存的动态特征是非常不一致的，即被置换的页面通常并不是进程不会访问的  
+在AP=7，PP=10时  
+### 运行情况<br>
+![image](https://user-images.githubusercontent.com/98074671/206364521-3f5f45e2-40a3-470e-a884-ed61a782ac34.png)  
+### LRU(Least-Recent-Used algorithm)
+三种方法：a、计时法，b、堆栈法，c、多位寄存器法。我的代码采用了计数器实现法，新增了pagecontroltimer数组来表示时间域，并为timer作为计数器。每次引用都会递增timer，并更新对应引用项的pttimer。通过FindMintimer来寻找到最近更新时间最小的内存页面下标，通过此下标来更新相关数值。  
+在AP=7，PP=10时  
+### 运行情况<br>
+![image](https://user-images.githubusercontent.com/98074671/206365213-aadeac75-11b4-4e30-947d-12ec9d5dcaa3.png)  
+<操作系统之页式管理>-- <https://zhuanlan.zhihu.com/p/391327282>   
 
 
 ***附：***  ssh基本用法：https://zhuanlan.zhihu.com/p/21999778  
